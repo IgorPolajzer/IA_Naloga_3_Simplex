@@ -62,43 +62,43 @@ void initialize_simplex(vector<vector<double>>& A, vector<double>& b, vector<int
 
     if (*ranges::min_element(b) >= 0) {
         for (int i = 1; i <= n; i++) N.emplace_back(i);
-        for (int i = 1; i <= n + m; i++) B.emplace_back(n + i);
+        for (int i = 1; i <= m; i++) B.emplace_back(n + i);
         v = 0;
     } else {
-        throw -1;
+        throw -2; // Negativna vrednost v sektorju b.
     }
 }
 
 void pivot(vector<vector<double>>& A, vector<double>& b, vector<double>& c, vector<int>& N, vector<int>& B, int& v, int& l, int& e) {
-    b[e] = b[l] / A[l][e];
+    b[e - 1] = b[l - 1] / A[l - 1][e - 1];
 
     for (int j : N) {
         if (j != e) {
-            A[e][j - 1] = A[l][j - 1] / A[l][e];
+            A[e - 1][j - 1] = A[l - 1][j - 1] / A[l - 1][e - 1];
         }
     }
-    A[e][l] = 1 / A[l][e];
+    A[e - 1][l - 1] = 1 / A[l - 1][e - 1];
 
     for (int i : B) {
         if (i != l) {
-            b[i - 1] = b[i - 1] - A[i - 1][e] * b[e];
+            b[i - 1] = b[i - 1] - A[i - 1][e - 1] * b[e - 1];
 
             for (int j : N) {
                 if (j != e) {
-                    A[i - 1][j - 1] = A[i - 1][j - 1] * A[e][j - 1];
+                    A[i - 1][j - 1] = A[i - 1][j - 1] - A[i - 1][e - 1] * A[e - 1][j - 1];
                 }
-                A[i - 1][l] = -A[i - 1][e] * A[e][l];
             }
+            A[i - 1][l - 1] = -A[i - 1][e - 1] * A[e - 1][l - 1];
         }
     }
 
-    v = v + c[e] * b[e];
+    v = v + c[e - 1] * b[e - 1];
     for (int j : N) {
         if (j != e) {
-            c[j - 1] = c[j - 1] - c[e] * A[e][j - 1];
+            c[j - 1] = c[j - 1] - c[e - 1] * A[e - 1][j - 1];
         }
     }
-    c[l] = -c[e] * A[e][l];
+    c[l - 1] = -c[e - 1] * A[e - 1][l - 1];
 
     // Replace e with l in N.
     for (int & i : N) if (i == e) i = l;
@@ -107,10 +107,6 @@ void pivot(vector<vector<double>>& A, vector<double>& b, vector<double>& c, vect
     for (int & i : B) if (i == l) i = e;
 }
 
-/*tuple<> pivot(vector<vector<double>>& A, vector<double>& b, vector<double>& c, vector<int>& N, vector<int>& B, int v, int l, int e) {
-
-}*/
-
 tuple<vector<double>, int> simplex(ifstream &file) {
     vector<vector<double>> A;
     vector<double> b, c;
@@ -118,42 +114,70 @@ tuple<vector<double>, int> simplex(ifstream &file) {
     int n, m, v;
     try {
         parseFile(file, A, b, c, n, m);
-        initialize_simplex(A, b, N, B,  n, m, v);
+        initialize_simplex(A, b, N, B, v, n, m);
 
-        int i = 0;
-        while (c[i] > 0) {
-            int e = 1;
-            while (c[e] > 0) {
-                e++;
+        bool hasPositive = true;
+        while (hasPositive) {
+
+            // Check if any c[k] > 0 where k in N and choose e.
+            hasPositive = false;
+            int e = -1;
+            for (int num : N) {
+                if (c[num - 1] > 0) {
+                    e = num;
+                    hasPositive = true;
+                    break;
+                }
             }
 
-            vector<double> delta(B.size());
+            if (!hasPositive) break;
+
+            vector<double> delta(n + m);
             for (int j : B) {
-                if (A[j - 1][e] > 0) delta[j - 1] = b[j - 1] / A[j - 1][e];
-                else delta[j - 1] = -1; // Infinity.
+                if (A[j - 1][e - 1] > 0) delta[j - 1] = b[j - 1] / A[j - 1][e - 1];
+                else delta[j - 1] = INT_MAX; // Infinity.
             }
-            int l = *ranges::min_element(delta);
 
-            if (delta[0] == -1) throw -1;
+            // Find the index l in B with minimum delta value
+            int l = B[0];
+            double minDelta = delta[l - 1];
+            for (int j : B) {
+                if (delta[j - 1] < minDelta) {
+                    minDelta = delta[j - 1];
+                    l = j;
+                }
+            }
+
+
+            if (minDelta  == INT_MAX) throw -3; // Neomejen program
             pivot(A, b, c, N, B, v, l, e);
-
-            i++;
         }
 
-        // Concatenate N and B into N.
-        // N.insert(N.end(), B.begin(), B.end());
-        vector<double> x;
-        for (int i = N.size() + B.size(); i++;) {
-            if (i == B.size()) {
-                x.push_back(b[i]);
-            } else {
-                x.push_back(0);
+        vector<double> x(n + m);
+        for (int i = 1; i <= n + m; i++) {
+            bool isInB = false;
+            for (int j : B) {
+                if (j == i) {
+                    x[i - 1] = b[i - 1];
+                    isInB = true;
+                    break;
+                }
+            }
+            if (!isInB) {
+                x[i - 1] = 0;
             }
         }
 
         return make_tuple(x, v);
     } catch (int e) {
-        cout << "Failed to parse file. Check for negative values in file";
+        if (e == -1) {
+            cout << "Napaka pri razčlenjevanju datoteke." << endl;
+        } else if (e == -2) {
+            cout << "Negativna vrednost v sektorju b." << endl;
+        } else if (e == -3) {
+            cout << "Neomejen program." << endl;
+        }
+        return make_tuple(vector<double>(), -1);
     }
 }
 
@@ -164,7 +188,15 @@ int main (int argc, const char * argv[]) {
 
     if (file.is_open()) {
         tuple<vector<double>, int> result = simplex(file);
-        cout << "";
+        vector<double> x = get<0>(result);
+        int z = get<1>(result);
+
+        if (z != -1) {
+            for (int i = 0; i < x.size(); i++) {
+                cout << "x" << (i + 1) << ": " << x[i] << endl;
+            }
+            cout << endl << "z: " << z << endl;
+        }
     }
 
     return 0;
