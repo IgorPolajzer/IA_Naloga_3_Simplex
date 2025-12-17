@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <tuple>
 
 using namespace std;
 
@@ -22,7 +23,8 @@ void parseLine(string line, vector<double> &numbers) {
     }
 }
 
-void parseFile(ifstream& file, vector<vector<double>>& A, vector<double>& b, vector<double>& c, vector<int>& N, vector<int>& B) {
+void parseFile(ifstream& file, vector<vector<double>>& A, vector<double>& b, vector<double>& c,
+    int &n, int& m) {
     string line;
 
     int lineNumber = 0;
@@ -32,14 +34,9 @@ void parseFile(ifstream& file, vector<vector<double>>& A, vector<double>& b, vec
         if (lineNumber == 0) {
             if (line.size() < 2) throw -1;
 
-            int N_size = stoi(&line[0]);
-            int B_size = stoi(&line[2]);
-            A_size = N_size + B_size;
-
-            for (int i = 1; i <= N_size + B_size; i++) {
-                if (i <= N_size) N.push_back(i);
-                else if (i > N_size) B.push_back(i);
-            }
+            n = stoi(&line[0]);
+            m = stoi(&line[2]);
+            A_size = n + m;
         } else if (lineNumber >= 2 && lineNumber <= A_size + 1) {
             vector<double> numbers;
 
@@ -61,31 +58,69 @@ void parseFile(ifstream& file, vector<vector<double>>& A, vector<double>& b, vec
     }
 }
 
-void initialize_simplex(vector<vector<double>>& A, vector<double>& b, vector<double>& c, vector<int>& N, vector<int>& B, int& v) {
+void initialize_simplex(vector<vector<double>>& A, vector<double>& b, vector<int>& N, vector<int>& B, int& v, int& n, int& m) {
 
     if (*ranges::min_element(b) >= 0) {
-        int n = A.size();
-        int m = A[0].size();
-
-        for (int i = 1; i < n; i++) N.emplace_back(i);
-        for (int i = 1; i < n + m; i++) B.emplace_back(n + i);
+        for (int i = 1; i <= n; i++) N.emplace_back(i);
+        for (int i = 1; i <= n + m; i++) B.emplace_back(n + i);
         v = 0;
     } else {
         throw -1;
     }
 }
 
-void simplex(ifstream& file) {
+void pivot(vector<vector<double>>& A, vector<double>& b, vector<double>& c, vector<int>& N, vector<int>& B, int& v, int& l, int& e) {
+    b[e] = b[l] / A[l][e];
+
+    for (int j : N) {
+        if (j != e) {
+            A[e][j - 1] = A[l][j - 1] / A[l][e];
+        }
+    }
+    A[e][l] = 1 / A[l][e];
+
+    for (int i : B) {
+        if (i != l) {
+            b[i - 1] = b[i - 1] - A[i - 1][e] * b[e];
+
+            for (int j : N) {
+                if (j != e) {
+                    A[i - 1][j - 1] = A[i - 1][j - 1] * A[e][j - 1];
+                }
+                A[i - 1][l] = -A[i - 1][e] * A[e][l];
+            }
+        }
+    }
+
+    v = v + c[e] * b[e];
+    for (int j : N) {
+        if (j != e) {
+            c[j - 1] = c[j - 1] - c[e] * A[e][j - 1];
+        }
+    }
+    c[l] = -c[e] * A[e][l];
+
+    // Replace e with l in N.
+    for (int & i : N) if (i == e) i = l;
+
+    // Replace l with e in B.
+    for (int & i : B) if (i == l) i = e;
+}
+
+/*tuple<> pivot(vector<vector<double>>& A, vector<double>& b, vector<double>& c, vector<int>& N, vector<int>& B, int v, int l, int e) {
+
+}*/
+
+tuple<vector<double>, int> simplex(ifstream &file) {
     vector<vector<double>> A;
     vector<double> b, c;
     vector<int> N, B;
-    int v;
+    int n, m, v;
     try {
-        parseFile(file, A, b, c, N, B);
-        // vector<int> N, B; // RESET FOR TESTING PURPOSES, should be fixed later
-        //initialize_simplex(A, b, c, N, B, v);
+        parseFile(file, A, b, c, n, m);
+        initialize_simplex(A, b, N, B,  n, m, v);
 
-        /*int i = 0;
+        int i = 0;
         while (c[i] > 0) {
             int e = 1;
             while (c[e] > 0) {
@@ -93,17 +128,30 @@ void simplex(ifstream& file) {
             }
 
             vector<double> delta(B.size());
-            for (double j : B) {
-                if (A[j][e] > 0) {
-                    delta[j] = b[j] / A[j]/
-                }
+            for (int j : B) {
+                if (A[j - 1][e] > 0) delta[j - 1] = b[j - 1] / A[j - 1][e];
+                else delta[j - 1] = -1; // Infinity.
             }
+            int l = *ranges::min_element(delta);
 
+            if (delta[0] == -1) throw -1;
+            pivot(A, b, c, N, B, v, l, e);
 
             i++;
-        }*/
+        }
 
-        cout << A.size() << " " << b.size() << " " << c.size() << " " << N.size() << endl;
+        // Concatenate N and B into N.
+        // N.insert(N.end(), B.begin(), B.end());
+        vector<double> x;
+        for (int i = N.size() + B.size(); i++;) {
+            if (i == B.size()) {
+                x.push_back(b[i]);
+            } else {
+                x.push_back(0);
+            }
+        }
+
+        return make_tuple(x, v);
     } catch (int e) {
         cout << "Failed to parse file. Check for negative values in file";
     }
@@ -115,7 +163,8 @@ int main (int argc, const char * argv[]) {
     ifstream file(file_name);
 
     if (file.is_open()) {
-        simplex(file);
+        tuple<vector<double>, int> result = simplex(file);
+        cout << "";
     }
 
     return 0;
