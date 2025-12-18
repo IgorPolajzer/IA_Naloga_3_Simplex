@@ -223,7 +223,6 @@ int main(int argc, const char *argv[]) {
     string operation = argv[1];
     string file_name = argv[2];
 
-
     try {
         if (operation == "-s") {
             // Solve.

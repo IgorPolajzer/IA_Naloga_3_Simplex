@@ -223,10 +223,8 @@ int main(int argc, const char *argv[]) {
     string operation = argv[1];
     string file_name = argv[2];
 
-
     try {
-        if (operation == "-s") {
-            // Solve.
+        if (operation == "-s") { // Solve.
             ifstream file(file_name);
 
             if (file.is_open()) {
@@ -248,8 +246,7 @@ int main(int argc, const char *argv[]) {
             } else {
                 cerr << "Napaka pri odpiranju datoteke." << endl;
             }
-        } else if (operation == "-t") {
-            // Test.
+        } else if (operation == "-t") { // Test.
             testSimplex();
         }
     } catch (int e) {
