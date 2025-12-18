@@ -8,7 +8,7 @@
 
 using namespace std;
 
-void parseLine(string line, vector<double> &numbers) {
+void parseLine(string line, vector<float> &numbers) {
     string number;
     for (int i = 0; i <= line.size(); i++) {
         if (line[i] != ' ') {
@@ -25,7 +25,7 @@ void parseLine(string line, vector<double> &numbers) {
     }
 }
 
-void parseFile(ifstream &file, vector<vector<double> > &A, vector<double> &b, vector<double> &c, int &n, int &m) {
+void parseFile(ifstream &file, vector<vector<float> > &A, vector<float> &b, vector<float> &c, int &n, int &m) {
     string line;
 
     int lineNumber = 0;
@@ -38,7 +38,7 @@ void parseFile(ifstream &file, vector<vector<double> > &A, vector<double> &b, ve
             m = stoi(&line[2]);
             A_size = n + m;
         } else if (lineNumber >= 2 && lineNumber <= A_size + 1) {
-            vector<double> numbers;
+            vector<float> numbers;
 
             parseLine(line, numbers);
             if (A_size != numbers.size()) throw -1;
@@ -57,7 +57,7 @@ void parseFile(ifstream &file, vector<vector<double> > &A, vector<double> &b, ve
     }
 }
 
-void initialize_simplex(vector<vector<double> > &A, vector<double> &b, vector<int> &N, vector<int> &B, double &v, int &n,
+void initialize_simplex(vector<vector<float> > &A, vector<float> &b, vector<int> &N, vector<int> &B, float &v, int &n,
                         int &m) {
     if (*ranges::min_element(b) >= 0) {
         for (int i = 1; i <= n; i++) N.emplace_back(i);
@@ -68,7 +68,7 @@ void initialize_simplex(vector<vector<double> > &A, vector<double> &b, vector<in
     }
 }
 
-void pivot(vector<vector<double> > &A, vector<double> &b, vector<double> &c, vector<int> &N, vector<int> &B, double &v,
+void pivot(vector<vector<float> > &A, vector<float> &b, vector<float> &c, vector<int> &N, vector<int> &B, float &v,
            int &l, int &e) {
     b[e - 1] = b[l - 1] / A[l - 1][e - 1];
 
@@ -107,9 +107,9 @@ void pivot(vector<vector<double> > &A, vector<double> &b, vector<double> &c, vec
     for (int &i: B) if (i == l) i = e;
 }
 
-tuple<vector<double>, double> simplex(vector<vector<double> > &A, vector<double> &b, vector<double> &c, int &n, int &m) {
+tuple<vector<float>, float> simplex(vector<vector<float> > &A, vector<float> &b, vector<float> &c, int &n, int &m) {
     vector<int> N, B;
-    double v;
+    float v;
     try {
         initialize_simplex(A, b, N, B, v, n, m);
 
@@ -128,7 +128,7 @@ tuple<vector<double>, double> simplex(vector<vector<double> > &A, vector<double>
 
             if (!hasPositive) break;
 
-            vector<double> delta(n + m);
+            vector<float> delta(n + m);
             for (int j: B) {
                 if (A[j - 1][e - 1] > 0) delta[j - 1] = b[j - 1] / A[j - 1][e - 1];
                 else delta[j - 1] = INT_MAX; // Infinity.
@@ -136,7 +136,7 @@ tuple<vector<double>, double> simplex(vector<vector<double> > &A, vector<double>
 
             // Find the index l in B with minimum delta value
             int l = B[0];
-            double minDelta = delta[l - 1];
+            float minDelta = delta[l - 1];
             for (int j: B) {
                 if (delta[j - 1] < minDelta) {
                     minDelta = delta[j - 1];
@@ -149,7 +149,7 @@ tuple<vector<double>, double> simplex(vector<vector<double> > &A, vector<double>
             pivot(A, b, c, N, B, v, l, e);
         }
 
-        vector<double> x(n + m);
+        vector<float> x(n + m);
         for (int i = 1; i <= n + m; i++) {
             bool isInB = false;
             for (int j: B) {
@@ -171,7 +171,7 @@ tuple<vector<double>, double> simplex(vector<vector<double> > &A, vector<double>
         } else if (e == -3) {
             cerr << "Neomejen program." << endl;
         }
-        return make_tuple(vector<double>(), -1);
+        return make_tuple(vector<float>(), -1);
     }
 }
 
@@ -186,11 +186,11 @@ void testSimplex() {
     cout << "Velikost" << "\t" << "Minimalni" << "\t" << "Maksimalni" << "\t" << "Srednji" << endl;
     cout << "problema:" << "\t" << "cas:" << "\t\t" << "cas:" << "\t\t" << "cas:" << endl;
     for (int n = 2; n <= maxSize; n++) {
-        double minT = 1e9, maxT = 0, sumT = 0;
+        float minT = 1e9, maxT = 0, sumT = 0;
 
         for (int i = 0; i < iterations; i++) {
-            vector<double> b(2*n), c(2*n); // size == 2xn
-            vector A(2*n, vector<double>(2*n)); // nxn
+            vector<float> b(2*n), c(2*n); // size == 2xn
+            vector A(2*n, vector<float>(2*n)); // nxn
 
             // Init A na [0, 999].
             for (auto &row : A) {
@@ -209,7 +209,7 @@ void testSimplex() {
             simplex(A, b, c, n, n);
             auto t2 = chrono::high_resolution_clock::now();
 
-            double t = chrono::duration<double, milli>(t2 - t1).count();
+            float t = chrono::duration<float, milli>(t2 - t1).count();
             minT = min(minT, t);
             maxT = max(maxT, t);
             sumT += t;
@@ -230,13 +230,13 @@ int main(int argc, const char *argv[]) {
             ifstream file(file_name);
 
             if (file.is_open()) {
-                vector<vector<double> > A;
-                vector<double> b, c;
+                vector<vector<float> > A;
+                vector<float> b, c;
                 int n, m;
                 parseFile(file, A, b, c, n, m);
 
-                tuple<vector<double>, double> result = simplex(A, b, c, n, m);
-                vector<double> x = get<0>(result);
+                tuple<vector<float>, int> result = simplex(A, b, c, n, m);
+                vector<float> x = get<0>(result);
                 int z = get<1>(result);
 
                 if (z != -1) {
