@@ -8,20 +8,20 @@
 
 using namespace std;
 
-void parseLine(string line, vector<float> &numbers) {
+void parseLine(const string& line, vector<float>& numbers) {
     string number;
-    for (int i = 0; i <= line.size(); i++) {
+
+    for (size_t i = 0; i < line.size(); i++) {
         if (line[i] != ' ') {
             number += line[i];
-        } else {
+        } else if (!number.empty()) {
             numbers.emplace_back(stod(number));
-            number = "";
+            number.clear();
         }
     }
 
-    try {
+    if (!number.empty()) {
         numbers.emplace_back(stod(number));
-    } catch (invalid_argument e) {
     }
 }
 
@@ -32,10 +32,8 @@ void parseFile(ifstream &file, vector<vector<float> > &A, vector<float> &b, vect
     int A_size = -1;
     while (getline(file, line)) {
         if (lineNumber == 0) {
-            if (line.size() < 2) throw -1;
-
-            n = stoi(&line[0]);
-            m = stoi(&line[2]);
+            stringstream ss(line);
+            ss >> n >> m;
             A_size = n + m;
         } else if (lineNumber >= 2 && lineNumber <= A_size + 1) {
             vector<float> numbers;
@@ -224,8 +222,7 @@ int main(int argc, const char *argv[]) {
     string file_name = argv[2];
 
     try {
-        if (operation == "-s") {
-            // Solve.
+        if (operation == "-s") { // Solve.
             ifstream file(file_name);
 
             if (file.is_open()) {
@@ -234,7 +231,7 @@ int main(int argc, const char *argv[]) {
                 int n, m;
                 parseFile(file, A, b, c, n, m);
 
-                tuple<vector<float>, int> result = simplex(A, b, c, n, m);
+                tuple<vector<float>, float> result = simplex(A, b, c, n, m);
                 vector<float> x = get<0>(result);
                 int z = get<1>(result);
 
@@ -247,16 +244,14 @@ int main(int argc, const char *argv[]) {
             } else {
                 cerr << "Napaka pri odpiranju datoteke." << endl;
             }
-        } else if (operation == "-t") {
-            // Test.
+        } else if (operation == "-t") { // Test.
             testSimplex();
         }
     } catch (int e) {
         if (e == -1) {
-            cerr << "Napaka pri razčlenjevanju datoteke." << endl;
+            cerr << "Napaka pri razclenjevanju datoteke." << endl;
         }
     }
-
 
     return 0;
 }

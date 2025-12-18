@@ -8,20 +8,20 @@
 
 using namespace std;
 
-void parseLine(string line, vector<double> &numbers) {
+void parseLine(const string& line, vector<double>& numbers) {
     string number;
-    for (int i = 0; i <= line.size(); i++) {
+
+    for (size_t i = 0; i < line.size(); i++) {
         if (line[i] != ' ') {
             number += line[i];
-        } else {
+        } else if (!number.empty()) {
             numbers.emplace_back(stod(number));
-            number = "";
+            number.clear();
         }
     }
 
-    try {
+    if (!number.empty()) {
         numbers.emplace_back(stod(number));
-    } catch (invalid_argument e) {
     }
 }
 
@@ -32,10 +32,8 @@ void parseFile(ifstream &file, vector<vector<double> > &A, vector<double> &b, ve
     int A_size = -1;
     while (getline(file, line)) {
         if (lineNumber == 0) {
-            if (line.size() < 2) throw -1;
-
-            n = stoi(&line[0]);
-            m = stoi(&line[2]);
+            stringstream ss(line);
+            ss >> n >> m;
             A_size = n + m;
         } else if (lineNumber >= 2 && lineNumber <= A_size + 1) {
             vector<double> numbers;
@@ -251,10 +249,9 @@ int main(int argc, const char *argv[]) {
         }
     } catch (int e) {
         if (e == -1) {
-            cerr << "Napaka pri razčlenjevanju datoteke." << endl;
+            cerr << "Napaka pri razclenjevanju datoteke." << endl;
         }
     }
-
 
     return 0;
 }
