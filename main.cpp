@@ -233,7 +233,7 @@ int main(int argc, const char *argv[]) {
 
                 tuple<vector<double>, double> result = simplex(A, b, c, n, m);
                 vector<double> x = get<0>(result);
-                int z = get<1>(result);
+                double z = get<1>(result);
 
                 if (z != -1) {
                     for (int i = 0; i < x.size(); i++) {

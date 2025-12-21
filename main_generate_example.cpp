@@ -22,11 +22,6 @@ int main() {
         return 1;
     }
 
-    std::mt19937 gen(std::random_device{}());
-    std::uniform_real_distribution aDist(0.2, 5.0);
-    std::uniform_real_distribution bDist(50.0, 500.0);
-    std::uniform_real_distribution cDist(1.0, 10.0);
-
     out << n << " " << m << "\n\n";
 
     // A matrix
@@ -37,29 +32,33 @@ int main() {
     }
 
     for (int i = 0; i < m; ++i) {
-        for (int j = 0; j < n; ++j)
-            out << aDist(gen) << " ";
+        for (int j = 0; j < n; ++j) {
+            if (j <= i)
+                out << rand() % 1000 << " ";
+            else
+                out << "0 ";
+        }
 
         for (int j = 0; j < m; ++j)
-            out << (i == j ? 1 : 0) << " ";
+            out << "0 ";
 
         out << "\n";
     }
 
     out << "\n";
 
-    // c vector
-    for (int i = 0; i < n; ++i)
-        out << cDist(gen) << " ";
-    for (int i = 0; i < m; ++i)
-        out << "0 ";
-    out << "\n\n";
-
     // b vector
     for (int i = 0; i < n; ++i)
         out << "0 ";
     for (int i = 0; i < m; ++i)
-        out << bDist(gen) << " ";
+        out << rand() % 1000 << " ";
+    out << "\n\n";
+
+    // c vector
+    for (int i = 0; i < n; ++i)
+        out << rand() % 1000 << " ";
+    for (int i = 0; i < m; ++i)
+        out << "0 ";
     out << "\n";
 
     out.close();
